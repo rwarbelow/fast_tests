@@ -6,11 +6,24 @@ Improving Test Speed
 Why test speed matters:
 -----------------------
 
-- *fast* feedback... think *instant* feedback.
-- you can iterate much more quickly, which keeps you from losing context every time you jump to test
-- it implies good design
+* Tests aren't free. Slow tests mean that eventually, you'll stop using them. 
+* fast feedback 
+* able to iterate much more quickly
+* avoid losing context each time you run tests
+* fast tests imply good design
 
-The case study:
+Quick Tricks and Tips:
+----------------------
+
+* use fixtures instead of real data -- pass the filepath of the fixture in when you need a set of data in a test
+* memoization: "an optimization technique used primarily to speed up computer programs by storing the results of expensive function calls and returning the cached result when the same inputs occur again." Thanks, Wikipedia.
+* do you really need to use the setup method?
+* do you really need to run the whole test suite?
+* run single files `ruby test/transaction_repository_test.rb`
+* run single tests `ruby test/transaction_repository_test.rb --name test_it_finds_by_credit_card_number`
+* you can also use the 'm' test runner to run single lines in more of an rspec-y style: https://github.com/qrush/m
+
+Josh Cheek's Case Study:
 ---------------
 
 - Josh checked in with Ian and Rolando:
