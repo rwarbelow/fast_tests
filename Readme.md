@@ -7,13 +7,13 @@ Why test speed matters:
 -----------------------
 
 - *fast* feedback... think *instant* feedback.
-- You can iterate much more quickly, which keeps you from losing context every time you jump to test. Keeping your head in the game.
+- you can iterate much more quickly, which keeps you from losing context every time you jump to test
 - it implies good design
 
 The case study:
 ---------------
 
-- checkin with Ian and Rolando:
+- Josh checked in with Ian and Rolando:
   ```
   $ git clone https://github.com/ianderse/sales_engine.git
   $ cd sales_engine
@@ -47,26 +47,21 @@ What happened during that checkin?
 ----------------------------------
 
 It proceeded as normal for quite a while.
-Eventually, we got to the [InvoiceItemRepository](https://github.com/ianderse/sales_engine/blob/0809f05/lib/invoice_item_repository.rb)
-and I told them the CSV handling was a problem.
-They weren't particularly receptive to this, so I had to explain myself:
+They then got to the [InvoiceItemRepository](https://github.com/ianderse/sales_engine/blob/0809f05/lib/invoice_item_repository.rb)
+and Josh told them the CSV handling was a problem. Why? 
 
 * The InvoiceItemRepository just gives me ways to deal with and interact with collections of InvoiceItems.
-* It has nothing to do with the CSV
-* Lets draw the dependencies
+* It should have nothing to do with the CSV
 
 ![Dependencies before](dependencies_before.png)
 
 See the problem? These repositories can't focus on their knowledge of how to query the InvoiceItems
 because they're coupled to the big bad world and volatile knowledge.
 
-Too theoretical, Josh
+Too theoretical?
 ---------------------
 
-Still not receptive. I get it, your shit works,
-this seems theoretical and irrelevant.
-**But it is relevant.**
-Lets talk about hypotheticals that happen fucking constantly:
+Let's talk about hypotheticals:
 
 I want to get my data from a database instead of a CSV,
 or from a service, or JSON file, or to make them in memory during a test.
@@ -83,17 +78,14 @@ end
 
 Not only does it know that its CSV,
 but it knows *where* that CSV is!
-Say I archive the data at the end of each year,
-and now I want to query the archived data.
-Guess where I'm going to keep my archived CSVs...
-Not in `./data/invoice_items.csv`
+If you archive the data at the end of each year,
+and you want to query the archived data, you're probably not going to store the data in `./data/invoice_items.csv`
 
-Lets say I want to be able to query multiple values,
-maybe items with a quantity of 5 that were created on January 1... how would you do that?
-"I can just go to the repository and create a method for that"
-you might be thinking.
+Let's say you want to be able to query multiple values.
+For example: items with a quantity of 5 that were created on January 1... how would you do that?
+"I can just go to the repository and create a method for that!"
 But you can't know all the combinations of things I might want to query, there's quantity, unit_price, created_at, updated_at, item_id, and invoice_id
-To give me every combination of two values I might want to query by, that's 15 methods... plus tests. To give me every combination I might want, that's 63 methods.
+To provide every combination of two values you might want to query by, that's 15 methods... plus tests. To provide every combination you might want, that's 63 methods.
 
 ```ruby
 attributes = %w[quantity unit_price created_at updated_at item_id invoice_id]  # => ["quantity", "unit_price", "created_at", "updated_at", "item_id", "invoice_id"]
@@ -102,7 +94,7 @@ attributes.size                                                                #
           .times.map { |n| attributes.combination(n.next).size }               # => [6, 15, 20, 15, 6, 1]
           .inject(0, :+)                                                       # => 63
 ```
-What if I had 10 attributes? That's 1000 methods! (and 14 attributes is over 9000!)
+What if you have 10 attributes? That's 1000 methods! (and 14 attributes is over 9000!)
 ```ruby
 attributes = %w[1 2 3 4 5 6 7 8 9 10]  # => ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
 attributes.size.times.map { |n|        # => #<Enumerator: 10:times>
@@ -111,7 +103,7 @@ attributes.size.times.map { |n|        # => #<Enumerator: 10:times>
 ```
 
 "So how does this have anything to do with that" I hear you wondering.
-Well, if I wanted to chain selectors together, how would I do it?
+Well, if you wanted to chain selectors together, how would you do it?
 I'd need to initialize a new repository with the previously selected results,
 then the scopes would be additive, like this
 
@@ -121,16 +113,16 @@ InvoiceItemRepository.new(sales_engine)
   .find_all_by_created_at('2000-01-01 00:00:01 UTC')
 ```
 
-But how do I initialize a repository with the selected results?
-It goes and fetches them from a CSV...
+But how do you initialize a repository with the selected results?
+Well, as of right now, it goes and fetches them from a CSV...
 
-So to do this, I would have to have the selectors convert the results
+So to do this, you would have to have the selectors convert the results
 to CSV, then write them to the file system, so they could initialize a new
 repository with the selected results. But it's worse, that overrides
-the existing CSV, so I have to move it out of the way before I do this,
-then move it back when I'm finished. And of course, if anything else tries
+the existing CSV, so you have to move it out of the way before you do this,
+then move it back when you're finished. And of course, if anything else tries
 to read that data while it's moved, it will get the filtered CSV rather
-than the full CSV, so I need a mutex around the csv access to guarantee
+than the full CSV, so you need protect csv access to guarantee
 that only one repository is using this at a time!
 
 Sound absurd to you? **Yeah, that's what those circles and arrows mean.**
@@ -189,21 +181,18 @@ def test_it_knows_what_items_are_associated_with_it
 end
 ```
 
-Guess how fast that test runs? To prove it to them, I ran that test 10,000 times
-and it was no more noticeable than if I had run it once. Hence, their 0.01 second
+Guess how fast that test runs? Hence, their 0.01 second
 test speed.
 
 Beyond that, you can *see* that this test works.
 The old one depended on the specifics of 20k record CSV files.
 They would assert counts, but you know they didn't actually count these.
-Here, you can see what matters, you can see
-
 
 What about chaining queries?
 ----------------------------
 
-As a proof of concept, I made the chained queries code work.
-There were a few changes I had to make, but the big ideas are this:
+As a proof of concept, you can make the chained queries code work.
+There were a few changes to make, but the big ideas are this:
 
 ```ruby
 class InvoiceItemRepository
@@ -255,7 +244,7 @@ We haven't addressed that the CSVs are going to be stored in a different locatio
 Our user will still have to move CSVs around or change to specific directories
 before running the application...
 
-Your turn reader, look at the dependencies, how can we fix this?
+Look at the dependencies. How can we fix this?
 
 
 What about InvoiceItemRepository depending on SalesEngine?
